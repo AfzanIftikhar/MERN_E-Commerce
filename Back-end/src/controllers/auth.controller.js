@@ -8,7 +8,6 @@ import jwt from "jsonwebtoken";
 import config from "../config/config.js";
 import sessionModel from "../models/session.model.js";
 
-
 // Registering a user
 async function registerUser(req, res) {
   try {
@@ -98,228 +97,228 @@ async function registerUser(req, res) {
 
 // Verifying a user
 async function verifyEmail(req, res) {
- try {
-  
-   const { otp, email } = req.body;
+  try {
+    const { otp, email } = req.body;
 
-   const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+    const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
 
-   const otpDox = await otpModel.findOne({
-     otpHash,
-     email,
-   });
+    const otpDox = await otpModel.findOne({
+      otpHash,
+      email,
+    });
 
-   if (!otpDox) {
-     return res.status(400).json({
-       success: false,
-       message: "Invalid otp",
-     });
-   }
+    if (!otpDox) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid otp",
+      });
+    }
 
-   const user = await userModel.findByIdAndUpdate(
-     otpDox.user,
-     {
-       verified: true,
-     },
-     {
-       new: true,
-     },
-   );
+    const user = await userModel.findByIdAndUpdate(
+      otpDox.user,
+      {
+        verified: true,
+      },
+      {
+        new: true,
+      },
+    );
 
-   await otpModel.deleteMany({
-     user: otpDox.user,
-   });
+    await otpModel.deleteMany({
+      user: otpDox.user,
+    });
 
-   res.status(200).json({
-     message: "Email Verified successfully",
-     user: {
-       firstName: user.firstname,
-       email: user.email,
-       verified: user.verified,
-     },
-   });
- } catch (error) {
-  
-  return res.status(500).json({
-    message:"Unexpected Error occured", error
-  })
- }
+    res.status(200).json({
+      message: "Email Verified successfully",
+      user: {
+        firstName: user.firstname,
+        email: user.email,
+        verified: user.verified,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Unexpected Error occured",
+      error,
+    });
+  }
 }
 
 // Logging in a user
 async function login(req, res) {
-
-
   try {
-    
-      const { email, password } = req.body;
+    const { email, password } = req.body;
 
-      // Finding User By Email
-      const user = await userModel.findOne({ email });
+    // Finding User By Email
+    const user = await userModel.findOne({ email });
 
-      // if user with the email is not present
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid credentials",
-        });
-      }
-
-      // If user is presnt but not verified
-      if (!user.verified) {
-        return res.status(401).json({
-          message: "User is not verified",
-        });
-      }
-
-      // Checking password if the password is valid then we will continue to create refresh token + Session + Access Token
-      const is_password_valid = await bcrypt.compare(password, user.password);
-
-      // If password is not valid
-      if (!is_password_valid) {
-        return res.status(404).json({
-          message: "Invalid Password",
-        });
-      }
-
-      // Creating refresh token
-
-      const refreshToken = jwt.sign(
-        {
-          id: user._id,
-        },
-        config.JWT_SECRET,
-        {
-          expiresIn: "7d",
-        },
-      );
-
-      // Converting refresh token to hash
-      const refreshTokenHash = crypto
-        .createHash("sha256")
-        .update(refreshToken)
-        .digest("hex");
-
-      // Creating session
-
-      const session = await sessionModel.create({
-        user: user._id,
-        refreshTokenHash,
-        ip: req.ip,
-        userAgent: req.headers["user-agent"],
+    // if user with the email is not present
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
       });
+    }
 
-      // Creating Access token
-      const accessToken = jwt.sign(
-        {
-          id: user._id,
-          sessionId: session._id,
-        },
-        config.JWT_SECRET,
-        {
-          expiresIn: "15m",
-        },
-      );
-
-      // Storing refresh token in a cookie
-
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // -> 7 days
+    // If user is presnt but not verified
+    if (!user.verified) {
+      return res.status(401).json({
+        message: "User is not verified",
       });
+    }
 
-      res.status(201).json({
-        success: true,
-        message: "Log in Successfully",
-        user: {
-          email: user.email,
-          firstname: user.firstname,
-          lastname: user.lastname,
-        },
-        accessToken,
+    // Checking password if the password is valid then we will continue to create refresh token + Session + Access Token
+    const is_password_valid = await bcrypt.compare(password, user.password);
+
+    // If password is not valid
+    if (!is_password_valid) {
+      return res.status(404).json({
+        message: "Invalid Password",
       });
+    }
+
+    // Creating refresh token
+
+    const refreshToken = jwt.sign(
+      {
+        id: user._id,
+      },
+      config.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    // Converting refresh token to hash
+    const refreshTokenHash = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex");
+
+    // Creating session
+
+    const session = await sessionModel.create({
+      user: user._id,
+      refreshTokenHash,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
+    // Creating Access token
+    const accessToken = jwt.sign(
+      {
+        id: user._id,
+        sessionId: session._id,
+      },
+      config.JWT_SECRET,
+      {
+        expiresIn: "15m",
+      },
+    );
+
+    // Storing refresh token in a cookie
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // -> 7 days
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Log in Successfully",
+      user: {
+        email: user.email,
+        firstname: user.firstname,
+        lastname: user.lastname,
+      },
+      accessToken,
+    });
   } catch (error) {
     return res.status(500).json({
-      message:"Unexpected error Occured"
-    })
+      message: "Unexpected error Occured",
+    });
   }
 }
 
-
 // Generating a Refresh Token
-async function refreshToken(req,res){
+async function refreshToken(req, res) {
   try {
-   
-    const {user,session} = req
+    const { user, session } = req;
 
-  const accessToken = jwt.sign({
-    user:user.id
-  },config.JWT_SECRET,{
-    expiresIn:"15m"
-  })
+    const accessToken = jwt.sign(
+      {
+        user: user.id,
+      },
+      config.JWT_SECRET,
+      {
+        expiresIn: "15m",
+      },
+    );
 
-  const newRefreshToken = jwt.sign({
-    id:user.id
+    const newRefreshToken = jwt.sign(
+      {
+        id: user.id,
+      },
+      config.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
+    );
 
-  },config.JWT_SECRET,{
-    expiresIn:'7d'
-  })
+    const newRefreshTokenHash = crypto
+      .createHash("sha256")
+      .update(newRefreshToken)
+      .digest("hex");
 
-  const newRefreshTokenHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex')
+    session.refreshTokenHash = newRefreshTokenHash;
+    await session.save();
 
-  session.refreshTokenHash = newRefreshTokenHash
-  await session.save()
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
-  res.cookie("refreshToken", newRefreshToken,{
-    httpOnly:true,
-    secure:true,
-    sameSite:'none',
-    maxAge:7*24*60*60*1000
-  })
-
-  res.status(200).json({
-    success:true,
-    accessToken
-  })
-
-
+    res.status(200).json({
+      success: true,
+      accessToken,
+    });
   } catch (error) {
     return res.status(500).json({
-      message:"Unexpected error occured",error
-    })
+      message: "Unexpected error occured",
+      error,
+    });
   }
 }
 
 // Log out a user
-async function logout(req,res) {
-try {
-   const {session} = req
+async function logout(req, res) {
+  try {
+    const { session } = req;
 
-  session.revoked = true;
-  await session.save();
+    session.revoked = true;
+    await session.save();
 
-  res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken");
 
-  res.status(200).json({
-    message: "Logged out successfully",
-  });
-
-} 
-catch (error) {
-  return res.status(500).json({
-    message:"Unexpected error occured",error
-  })
-}
-  
+    res.status(200).json({
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Unexpected error occured",
+      error,
+    });
+  }
 }
 
 // Logout a user from all devices
-async function logOutall(req,res) {
-
+async function logOutall(req, res) {
   try {
-    const {user} = req
+    const { user } = req;
     await sessionModel.updateMany(
       {
         user: user.id,
@@ -337,93 +336,86 @@ async function logOutall(req,res) {
       message: "logged Out from all devices",
     });
   } catch (error) {
-    
     return res.status(500).json({
-      message:"Unexpected error occured",error
-    })
+      message: "Unexpected error occured",
+      error,
+    });
   }
-
 }
 
 // Get Current User
-async function getUser(req,res){
+async function getUser(req, res) {
+  const token = req.headers.authorization?.split(" ")[1];
 
-  const token = req.headers.authorization?.split(" ")[1]
-
-  if(!token){
+  if (!token) {
     return res.status(404).json({
-      message : "Token Not found"
-    })
+      message: "Token Not found",
+    });
   }
 
   try {
-    const decoded = jwt.verify(token, config.JWT_SECRET)
+    const decoded = jwt.verify(token, config.JWT_SECRET);
 
-    const user = await userModel.findById(decoded.id)
+    const user = await userModel.findById(decoded.id);
 
     res.status(200).json({
-      success:true,
-      user
-    })
+      success: true,
+      user,
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(400).json({
-      message:"Unable to fetch User"
-    })
+      message: "Unable to fetch User",
+    });
   }
-
-
 }
 
 // Forgot Password Functionality
 async function forgot_password(req, res) {
-  const { email } = req.body;
-
-  const user = await userModel.findOne({ email });
-    
+ try {
   
-  if (!user) {
-    return res.status(404).json({
-      success: false,
-      message: "an email was sent, please enter the OTP to verify",
-    });
-  }
+   const { email } = req.body;
 
-  const otpUser = await otpModel
-      .findOne({ user: user._id })
-      .sort({ createdAt: "desc" });
+   const user = await userModel.findOne({ email });
 
+   if (!user) {
+     return res.status(404).json({
+       success: false,
+       message: "an email was sent, please enter the OTP to verify",
+     });
+   }
 
+   const otpUser = await otpModel
+     .findOne({ user: user._id })
+     .sort({ createdAt: "desc" });
 
- 
-  if (!otpUser) {
-    // generating OTP
-    const otp = generateotp();
+   if (!otpUser) {
+     // generating OTP
+     const otp = generateotp();
 
-    // Converting OTP to HASH
-    const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+     // Converting OTP to HASH
+     const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
 
-    // Generating the OTP HTML file which will be visible on the email
-    const otpHTMl = generateOtpHtml(otp);
+     // Generating the OTP HTML file which will be visible on the email
+     const otpHTMl = generateOtpHtml(otp);
 
-    // Creating OTP in the Database
-    await otpModel.create({
-      user: user._id,
-      email: user.email,
-      otpHash: otpHash,
-    });
+     // Creating OTP in the Database
+     await otpModel.create({
+       user: user._id,
+       email: user.email,
+       otpHash: otpHash,
+     });
 
-    // Sending the Email
-    await sendEmail(
-      email,
-      `OTP verification`,
-      `Your otp code is ${otp}`,
-      otpHTMl,
-    );
-  }
+     // Sending the Email
+     await sendEmail(
+       email,
+       `OTP verification`,
+       `Your otp code is ${otp}`,
+       otpHTMl,
+     );
+   }
 
- 
-  if(otpUser){
+   if (otpUser) {
      const otpTime = otpUser.createdAt.getTime();
 
      const currentTime = Date.now();
@@ -440,7 +432,7 @@ async function forgot_password(req, res) {
        // Generating the OTP HTML file which will be visible on the email
        const otpHTMl = generateOtpHtml(otp);
 
-      await otpModel.deleteOne({_id:otpUser._id})
+       await otpModel.deleteOne({ _id: otpUser._id });
 
        // Creating OTP in the Database
        await otpModel.create({
@@ -460,145 +452,132 @@ async function forgot_password(req, res) {
          message: "OTP has already been sent to your email, Wait for 2 minutes",
        });
      }
+   }
 
-  }
- 
-
-
- 
-  res.status(200).json({
-    message:"OTP has been sent to your email"
+   res.status(200).json({
+     message: "OTP has been sent to your email",
+   });
+ } catch (error) {
+  res.status(409).json({
+    message:"Unexpected error occured"
   })
+  
+ }
 }
 
 // Verifying forget-Password Otp
-
-async function verify_OTP(req,res) {
-  const {otp,email} = req.body
-
-  const otpHash = crypto.createHash('sha256').update(otp).digest("hex")
-
-
-  const otpDoc = await otpModel.findOne({
-    email,
-    otpHash
-  })
-
-
-  if(!otpDoc){
-    return res.status(403).json({
-      message:"Invalid OTP"
-    })
-  }
-
-  const currentTime = Date.now()
-  const OtpCreated = otpDoc.createdAt.getTime()
-  const estimate = currentTime - OtpCreated
-  if(estimate >= 120000){
-    return res.status(409).json({
-      message:"OTP expired..."
-    })
-  }
-
-  const resetToken = jwt.sign({
-
-    id:otpDoc.user,
-    type:"Reset-password"
-
-  },config.JWT_SECRET,{
-    expiresIn:"10m"
-  })
-
-
-
-    otpModel.deleteOne({_id:otpDoc._id})
-
-
-    res.status(200).json({
-      resetToken
-    })
-    
-
-
-
-
-
-
-}
-
-
-// Reseting Password
-
-async function reset_password(req,res){
+async function verify_OTP(req, res) {
  try {
-  
-   const token = req.headers.authorization?.split(" ")[1];
-   const { newPassword } = req.body;
+   const { otp, email } = req.body;
 
-   if (!newPassword) {
-     return res.status(401).json({
-       message: "New password is required",
+   const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+   const otpDoc = await otpModel.findOne({
+     email,
+     otpHash,
+   });
+
+   if (!otpDoc) {
+     return res.status(403).json({
+       message: "Invalid OTP",
      });
    }
 
-   if (!token) {
-     return res.status(404).json({
-       message: "Invalid token",
+   const currentTime = Date.now();
+   const OtpCreated = otpDoc.createdAt.getTime();
+   const estimate = currentTime - OtpCreated;
+   if (estimate >= 120000) {
+     return res.status(409).json({
+       message: "OTP expired...",
      });
    }
 
-   const decoded = jwt.verify(token, config.JWT_SECRET);
+   const resetToken = jwt.sign(
+     {
+       id: otpDoc.user,
+       type: "Reset-password",
+     },
+     config.JWT_SECRET,
+     {
+       expiresIn: "10m",
+     },
+   );
 
-   const user = await userModel.findById(decoded.id);
-   if (!user) {
-     return res.status(404).json({
-       message: "User not found",
-     });
-   }
-   if (decoded.type !== "Reset-password") {
-     return res.status(404).json({
-       message: "You can't access to this part",
-     });
-   }
-
-   const newPasswordHash = await bcrypt.hash(newPassword, 10);
-   user.password = newPasswordHash;
-   await user.save();
+   otpModel.deleteOne({ _id: otpDoc._id });
 
    res.status(200).json({
-     message: "Password updated",
-     userDetails: {
-       message: "Password updated successfully",
-       user,
-     },
+     resetToken,
    });
- } catch (error) {
   
-  if (error.name === 'TokenExpiredError'){
-
-    res.status(401).json({
-      message: "Reset Token has expired",
-    });
-
-  }
-
-  if(error.name === 'JsonWebTokenError'){
-    res.status(401).json({
-      message:"Reset token is not valid"
-    })
-  }
-
-  else{
-    return res.status(500).json({
-      message:"Internal server error"
-    })
-  }
-    
+ } catch (error) {
+  console.log(error)
+  res.status(409).json({
+    message:"Unexpected error occured"
+  })
  }
-
 }
 
+// Reseting Password
+async function reset_password(req, res) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    const { newPassword } = req.body;
 
+    if (!newPassword) {
+      return res.status(401).json({
+        message: "New password is required",
+      });
+    }
+
+    if (!token) {
+      return res.status(404).json({
+        message: "Invalid token",
+      });
+    }
+
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+
+    const user = await userModel.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+    if (decoded.type !== "Reset-password") {
+      return res.status(404).json({
+        message: "You can't access to this part",
+      });
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    user.password = newPasswordHash;
+    await user.save();
+
+    res.status(200).json({
+      message: "Password updated",
+      userDetails: {
+        message: "Password updated successfully",
+        user,
+      },
+    });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      res.status(401).json({
+        message: "Reset Token has expired",
+      });
+    }
+
+    if (error.name === "JsonWebTokenError") {
+      res.status(401).json({
+        message: "Reset token is not valid",
+      });
+    } else {
+      return res.status(500).json({
+        message: "Internal server error",
+      });
+    }
+  }
+}
 
 export {
   registerUser,

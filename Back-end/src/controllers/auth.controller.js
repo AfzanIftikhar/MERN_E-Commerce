@@ -471,6 +471,135 @@ async function forgot_password(req, res) {
   })
 }
 
+// Verifying forget-Password Otp
+
+async function verify_OTP(req,res) {
+  const {otp,email} = req.body
+
+  const otpHash = crypto.createHash('sha256').update(otp).digest("hex")
+
+
+  const otpDoc = await otpModel.findOne({
+    email,
+    otpHash
+  })
+
+
+  if(!otpDoc){
+    return res.status(403).json({
+      message:"Invalid OTP"
+    })
+  }
+
+  const currentTime = Date.now()
+  const OtpCreated = otpDoc.createdAt.getTime()
+  const estimate = currentTime - OtpCreated
+  if(estimate >= 120000){
+    return res.status(409).json({
+      message:"OTP expired..."
+    })
+  }
+
+  const resetToken = jwt.sign({
+
+    id:otpDoc.user,
+    type:"Reset-password"
+
+  },config.JWT_SECRET,{
+    expiresIn:"10m"
+  })
+
+
+
+    otpModel.deleteOne({_id:otpDoc._id})
+
+
+    res.status(200).json({
+      resetToken
+    })
+    
+
+
+
+
+
+
+}
+
+
+// Reseting Password
+
+async function reset_password(req,res){
+ try {
+  
+   const token = req.headers.authorization?.split(" ")[1];
+   const { newPassword } = req.body;
+
+   if (!newPassword) {
+     return res.status(401).json({
+       message: "New password is required",
+     });
+   }
+
+   if (!token) {
+     return res.status(404).json({
+       message: "Invalid token",
+     });
+   }
+
+   const decoded = jwt.verify(token, config.JWT_SECRET);
+
+   const user = await userModel.findById(decoded.id);
+   if (!user) {
+     return res.status(404).json({
+       message: "User not found",
+     });
+   }
+   if (decoded.type !== "Reset-password") {
+     return res.status(404).json({
+       message: "You can't access to this part",
+     });
+   }
+
+   const newPasswordHash = await bcrypt.hash(newPassword, 10);
+   user.password = newPasswordHash;
+   await user.save();
+
+   res.status(200).json({
+     message: "Password updated",
+     userDetails: {
+       message: "Password updated successfully",
+       user,
+     },
+   });
+ } catch (error) {
+  
+  if (error.name === 'TokenExpiredError'){
+
+    res.status(401).json({
+      message: "Reset Token has expired",
+    });
+
+  }
+
+  if(error.name === 'JsonWebTokenError'){
+    res.status(401).json({
+      message:"Reset token is not valid"
+    })
+  }
+
+  else{
+    return res.status(500).json({
+      message:"Internal server error"
+    })
+  }
+    
+ }
+
+}
+
+
+
 export {
   registerUser,
   login,
@@ -480,4 +609,6 @@ export {
   refreshToken,
   getUser,
   forgot_password,
+  verify_OTP,
+  reset_password,
 };

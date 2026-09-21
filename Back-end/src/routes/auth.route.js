@@ -8,6 +8,8 @@ import {
   getUser,
   refreshToken,
   forgot_password,
+  verify_OTP,
+  reset_password,
 } from "../controllers/auth.controller.js";
 import { verifyRefreshToken } from "../middlewares/auth.middleware.js";
 
@@ -40,5 +42,11 @@ authRoute.get("/getUser", getUser)
 // POST /api/auth/forgot-password
 authRoute.post("/forgot-password", forgot_password)
 
+// POST /api/auth/verify-OTP
+authRoute.post("/verify-otp", verify_OTP)
+
+// POST /api/auth/reset-password
+
+authRoute.post("/reset-password", reset_password);
 
 export default authRoute

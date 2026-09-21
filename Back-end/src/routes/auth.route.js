@@ -5,7 +5,9 @@ import {
   verifyEmail,
   logOutall,
   logout,
+  getUser,
   refreshToken,
+  forgot_password,
 } from "../controllers/auth.controller.js";
 import { verifyRefreshToken } from "../middlewares/auth.middleware.js";
 
@@ -31,5 +33,12 @@ authRoute.post("/logoutAll",verifyRefreshToken, logOutall)
 
 // POST /api/auth/refreshToken
 authRoute.post("/refreshToken" ,verifyRefreshToken, refreshToken);
+
+// /GET /api/auth/getUser
+authRoute.get("/getUser", getUser)
+
+// POST /api/auth/forgot-password
+authRoute.post("/forgot-password", forgot_password)
+
 
 export default authRoute

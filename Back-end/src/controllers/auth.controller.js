@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import config from "../config/config.js";
 import sessionModel from "../models/session.model.js";
 
+
 // Registering a user
 async function registerUser(req, res) {
   try {
@@ -248,7 +249,6 @@ async function login(req, res) {
 
 
 // Generating a Refresh Token
-
 async function refreshToken(req,res){
   try {
    
@@ -345,4 +345,139 @@ async function logOutall(req,res) {
 
 }
 
-export { registerUser, login, verifyEmail, logout,logOutall,refreshToken };
+// Get Current User
+async function getUser(req,res){
+
+  const token = req.headers.authorization?.split(" ")[1]
+
+  if(!token){
+    return res.status(404).json({
+      message : "Token Not found"
+    })
+  }
+
+  try {
+    const decoded = jwt.verify(token, config.JWT_SECRET)
+
+    const user = await userModel.findById(decoded.id)
+
+    res.status(200).json({
+      success:true,
+      user
+    })
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({
+      message:"Unable to fetch User"
+    })
+  }
+
+
+}
+
+// Forgot Password Functionality
+async function forgot_password(req, res) {
+  const { email } = req.body;
+
+  const user = await userModel.findOne({ email });
+    
+  
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "an email was sent, please enter the OTP to verify",
+    });
+  }
+
+  const otpUser = await otpModel
+      .findOne({ user: user._id })
+      .sort({ createdAt: "desc" });
+
+
+
+ 
+  if (!otpUser) {
+    // generating OTP
+    const otp = generateotp();
+
+    // Converting OTP to HASH
+    const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+    // Generating the OTP HTML file which will be visible on the email
+    const otpHTMl = generateOtpHtml(otp);
+
+    // Creating OTP in the Database
+    await otpModel.create({
+      user: user._id,
+      email: user.email,
+      otpHash: otpHash,
+    });
+
+    // Sending the Email
+    await sendEmail(
+      email,
+      `OTP verification`,
+      `Your otp code is ${otp}`,
+      otpHTMl,
+    );
+  }
+
+ 
+  if(otpUser){
+     const otpTime = otpUser.createdAt.getTime();
+
+     const currentTime = Date.now();
+
+     const elapsedTime = currentTime - otpTime;
+
+     if (elapsedTime >= 120000) {
+       // generating OTP
+       const otp = generateotp();
+
+       // Converting OTP to HASH
+       const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+       // Generating the OTP HTML file which will be visible on the email
+       const otpHTMl = generateOtpHtml(otp);
+
+      await otpModel.deleteOne({_id:otpUser._id})
+
+       // Creating OTP in the Database
+       await otpModel.create({
+         user: user._id,
+         email: user.email,
+         otpHash: otpHash,
+       });
+       // Sending the Email
+       await sendEmail(
+         email,
+         `OTP verification`,
+         `Your otp code is ${otp}`,
+         otpHTMl,
+       );
+     } else {
+       return res.status(400).json({
+         message: "OTP has already been sent to your email, Wait for 2 minutes",
+       });
+     }
+
+  }
+ 
+
+
+ 
+  res.status(200).json({
+    message:"OTP has been sent to your email"
+  })
+}
+
+export {
+  registerUser,
+  login,
+  verifyEmail,
+  logout,
+  logOutall,
+  refreshToken,
+  getUser,
+  forgot_password,
+};

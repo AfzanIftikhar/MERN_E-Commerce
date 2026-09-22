@@ -1,12 +1,12 @@
-import userModel from "../models/user.model.js";
+import userModel from "../models/auth_models/user.model.js";
 import bcrypt from "bcrypt";
 import { generateotp, generateOtpHtml } from "../utils/utils.js";
 import crypto from "crypto";
-import otpModel from "../models/otp.model.js";
+import otpModel from "../models/auth_models/otp.model.js";
 import { sendEmail } from "../services/email.service.js";
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
-import sessionModel from "../models/session.model.js";
+import sessionModel from "../models/auth_models/session.model.js";
 
 // Registering a user
 async function registerUser(req, res) {

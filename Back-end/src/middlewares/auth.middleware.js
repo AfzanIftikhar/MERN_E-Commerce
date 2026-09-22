@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken"
 import config from "../config/config.js"
 import crypto from "crypto"
-import sessionModel from "../models/session.model.js"
+import sessionModel from "../models/auth_models/session.model.js"
 
 
 // Verifying Refresh Token

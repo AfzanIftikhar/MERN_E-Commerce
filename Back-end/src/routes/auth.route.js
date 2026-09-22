@@ -28,7 +28,6 @@ authRoute.post("/verifyEmail", verifyEmail)
 // POST /api/auth.logout
 authRoute.post("/logout",verifyRefreshToken, logout);
 
-
 // POST /api/auth/logOutAll
 authRoute.post("/logoutAll",verifyRefreshToken, logOutall)
 
@@ -46,7 +45,6 @@ authRoute.post("/forgot-password", forgot_password)
 authRoute.post("/verify-otp", verify_OTP)
 
 // POST /api/auth/reset-password
-
 authRoute.post("/reset-password", reset_password);
 
 export default authRoute

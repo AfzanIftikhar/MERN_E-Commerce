@@ -1,5 +1,7 @@
 import categoryModel from "../models/Product_Models/Category.model.js";
 
+
+// Creating a category
 async function createCategory(req, res) {
   try {
     const { name, description } = req.body;
@@ -29,8 +31,11 @@ async function createCategory(req, res) {
 }
 
 
+// fetching all the categories
 async function allCategories(req, res) {
+
   try {
+
     const all_categories = await categoryModel.find();
 
     return res.status(200).json({
@@ -38,7 +43,9 @@ async function allCategories(req, res) {
       message: "All categories are fetch successfully",
       all_categories,
     });
-  } catch (error) {
+  }
+  
+  catch (error) {
     console.log(error);
     res.status(500).json({
         success:false,
@@ -46,5 +53,7 @@ async function allCategories(req, res) {
     });
   }
 }
+
+
 
 export { createCategory, allCategories };

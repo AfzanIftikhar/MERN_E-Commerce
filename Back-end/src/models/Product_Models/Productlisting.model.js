@@ -19,7 +19,7 @@ const product_listing_Schema = new mongoose.Schema({
             return val > 0
 
         },
-        message : `Price ${val} must be a positive number`
+        message : `Price value must be a positive number`
     }
   },
   stock:{

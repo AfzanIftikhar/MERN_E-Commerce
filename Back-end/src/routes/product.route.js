@@ -4,6 +4,8 @@ import {
   allCategories,
   createProduct,
   create_listing,
+  update_listing,
+  
 } from "../controllers/product.controller.js";
 import multer from "multer";
 
@@ -29,5 +31,8 @@ productRouter.post("/product",upload.single("image"),  createProduct);
 // POST /api/products/listings
 productRouter.post("/listing", create_listing)
 
+
+// POST /api/products/listings:id
+productRouter.patch("/listing/:id", update_listing)
 
 export default productRouter

@@ -249,7 +249,7 @@ async function refreshToken(req, res) {
 
     const accessToken = jwt.sign(
       {
-        user: user.id,
+        id: user.id,
       },
       config.JWT_SECRET,
       {
